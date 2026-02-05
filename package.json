@@ -20,11 +20,11 @@
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/thedotmack/claude-memu.git"
+    "url": "https://github.com/minhlucvan/claude-memu.git"
   },
-  "homepage": "https://github.com/thedotmack/claude-memu#readme",
+  "homepage": "https://github.com/minhlucvan/claude-memu#readme",
   "bugs": {
-    "url": "https://github.com/thedotmack/claude-memu/issues"
+    "url": "https://github.com/minhlucvan/claude-memu/issues"
   },
   "type": "module",
   "exports": {

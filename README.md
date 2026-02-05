@@ -262,7 +262,7 @@ const categories = await client.listCategories();
 
 - **Node.js** 18.0.0+
 - **Bun** (auto-installed)
-- **memU API Key** from [api.memu.so](https://api.memu.so) or self-hosted
+- **memU API Key** (optional) - required only for cloud features from [api.memu.so](https://api.memu.so)
 
 ---
 
@@ -320,7 +320,7 @@ See [LICENSE](LICENSE) for details.
 ## Links
 
 - **memU**: [github.com/NevaMind-AI/memU](https://github.com/NevaMind-AI/memU)
-- **Issues**: [GitHub Issues](https://github.com/thedotmack/claude-memu/issues)
+- **Issues**: [GitHub Issues](https://github.com/minhlucvan/claude-memu/issues)
 
 ---
 
