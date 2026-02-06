@@ -1,16 +1,16 @@
 {
-  "name": "thedotmack",
+  "name": "minhlucvan",
   "owner": {
-    "name": "Alex Newman"
+    "name": "minhlucvan"
   },
   "metadata": {
-    "description": "Plugins by Alex Newman (thedotmack)",
+    "description": "Claude-memu - Persistent memory for Claude Code",
     "homepage": "https://github.com/minhlucvan/claude-memu"
   },
   "plugins": [
     {
       "name": "claude-memu",
-      "version": "10.0.0",
+      "version": "1.0.0",
       "source": "./plugin",
       "description": "Persistent memory for Claude Code using memU - works locally or with cloud API"
     }

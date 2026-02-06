@@ -1,6 +1,6 @@
 {
   "name": "claude-memu",
-  "version": "10.0.0",
+  "version": "1.0.0",
   "description": "Memory system for Claude Code using memU - persist context across sessions with hierarchical memory",
   "keywords": [
     "claude",
@@ -16,7 +16,7 @@
     "typescript",
     "nodejs"
   ],
-  "author": "Alex Newman",
+  "author": "minhlucvan",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
