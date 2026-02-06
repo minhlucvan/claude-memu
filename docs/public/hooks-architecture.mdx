@@ -74,13 +74,13 @@ Claude Code's hook system provides exactly what we need:
 
 ## The Hook Scripts
 
-Claude-Mem uses lifecycle hook scripts across 5 lifecycle events. SessionStart runs 3 hooks in sequence: smart-install, worker-service start, and context-hook.
+Claude-Memu uses lifecycle hook scripts across 5 hook events: Setup, SessionStart, UserPromptSubmit, PostToolUse, and Stop. All hooks (except Setup) use the `bun-runner.js` wrapper to invoke `worker-service.cjs` subcommands.
 
-### Pre-Hook: Smart Install (Before SessionStart)
+### Pre-Hook: Smart Install (Part of SessionStart)
 
-**Purpose:** Intelligently manage dependencies and start worker service
+**Purpose:** Intelligently manage dependencies before the worker starts.
 
-**Note:** This is NOT a lifecycle hook - it's a pre-hook script executed via command chaining before context-hook runs.
+**Note:** This is the first hook in the SessionStart sequence, running before the worker-service hooks.
 
 **When:** Claude Code starts (startup, clear, or compact)
 
@@ -90,19 +90,19 @@ Claude-Mem uses lifecycle hook scripts across 5 lifecycle events. SessionStart r
    - First-time installation
    - Version changed in package.json
 3. Provides Windows-specific error messages
-4. Starts Bun worker service
 
-**Configuration:**
+**Configuration:** (first hook in SessionStart sequence)
 ```json
 {
   "hooks": {
     "SessionStart": [{
       "matcher": "startup|clear|compact",
-      "hooks": [{
-        "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/../scripts/smart-install.js\" && node ${CLAUDE_PLUGIN_ROOT}/scripts/context-hook.js",
-        "timeout": 300
-      }]
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/smart-install.js\"", "timeout": 300 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code context", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code user-message", "timeout": 60 }
+      ]
     }]
   }
 }
@@ -137,7 +137,7 @@ Claude-Mem uses lifecycle hook scripts across 5 lifecycle events. SessionStart r
 - ✅ Runs on startup, clear, and compact
 - ✅ 300-second timeout (allows for npm install if needed)
 - ✅ Progressive disclosure format (index, not full details)
-- ✅ Configurable observation count via `CLAUDE_MEM_CONTEXT_OBSERVATIONS`
+- ✅ Configurable context limit via `CLAUDE_MEMU_CONTEXT_LIMIT`
 
 **Output format:**
 ```markdown
@@ -177,10 +177,10 @@ Claude-Mem uses lifecycle hook scripts across 5 lifecycle events. SessionStart r
 {
   "hooks": {
     "UserPromptSubmit": [{
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/new-hook.js"
-      }]
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code session-init", "timeout": 60 }
+      ]
     }]
   }
 }
@@ -224,10 +224,10 @@ VALUES (?, ?, ?, ...)
   "hooks": {
     "PostToolUse": [{
       "matcher": "*",
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/save-hook.js"
-      }]
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code observation", "timeout": 120 }
+      ]
     }]
   }
 }
@@ -284,10 +284,10 @@ VALUES (?, ?, ?, ?, ...)
 {
   "hooks": {
     "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/summary-hook.js"
-      }]
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code summarize", "timeout": 120 }
+      ]
     }]
   }
 }
@@ -322,63 +322,7 @@ VALUES (?, ?, ?, ?, ...)
 
 ---
 
-### Hook 5: SessionEnd (Cleanup Hook)
-
-**Purpose:** Mark sessions as completed when they end
-
-**When:** Claude Code session ends (not on `/clear`)
-
-**What it does:**
-1. Marks session as completed in database
-2. Allows worker to finish processing
-3. Performs graceful cleanup
-
-**Configuration:**
-```json
-{
-  "hooks": {
-    "SessionEnd": [{
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-hook.js"
-      }]
-    }]
-  }
-}
-```
-
-**Key decisions:**
-- ✅ Graceful completion (v4.1.0+)
-- ✅ No longer sends DELETE to workers
-- ✅ Skips cleanup on `/clear` commands
-- ✅ Preserves ongoing sessions
-
-**Why graceful cleanup?**
-
-**Old approach (v3):**
-```typescript
-// ❌ Aggressive cleanup
-SessionEnd → DELETE /worker/session → Worker stops immediately
-```
-
-**Problems:**
-- Interrupted summary generation
-- Lost pending observations
-- Race conditions
-
-**New approach (v4.1.0+):**
-```typescript
-// ✅ Graceful completion
-SessionEnd → UPDATE sessions SET completed_at = NOW()
-Worker sees completion → Finishes processing → Exits naturally
-```
-
-**Benefits:**
-- Worker finishes important operations
-- Summaries complete successfully
-- Clean state transitions
-
-**Source:** `src/hooks/cleanup-hook.ts` → `plugin/scripts/cleanup-hook.js`
+> **Note:** There is no `SessionEnd` hook registered in hooks.json. Session cleanup is handled internally by the worker service.
 
 ---
 
@@ -429,13 +373,17 @@ sequenceDiagram
 
 | Event | Timing | Blocking | Timeout | Output Handling |
 |-------|--------|----------|---------|-----------------|
+| **Setup** | Plugin install | No | 120s | setup.sh |
 | **SessionStart (smart-install)** | Before session | No | 300s | stderr (log only) |
 | **SessionStart (worker-start)** | Before session | No | 60s | stderr (log only) |
 | **SessionStart (context)** | Before session | No | 60s | JSON → additionalContext (silent) |
-| **UserPromptSubmit** | Before processing | No | 60s | stdout → context |
-| **PostToolUse** | After tool | No | 120s | Transcript only |
-| **Summary** | Worker triggered | No | 120s | Database |
-| **SessionEnd** | On exit | No | 120s | Log only |
+| **SessionStart (user-message)** | Before session | No | 60s | stderr (log only) |
+| **UserPromptSubmit (worker-start)** | Before processing | No | 60s | stderr (log only) |
+| **UserPromptSubmit (session-init)** | Before processing | No | 60s | stdout → context |
+| **PostToolUse (worker-start)** | After tool | No | 60s | stderr (log only) |
+| **PostToolUse (observation)** | After tool | No | 120s | Transcript only |
+| **Stop (worker-start)** | On stop | No | 60s | stderr (log only) |
+| **Stop (summarize)** | On stop | No | 120s | Database |
 
 <Note>
 As of Claude Code 2.1.0 (ultrathink update), SessionStart hooks no longer display user-visible messages. Context is silently injected via `hookSpecificOutput.additionalContext`.
@@ -648,7 +596,7 @@ claude --debug
     **Symptoms:** PostToolUse hook runs but observations missing
 
     **Debugging:**
-    1. Check database: `sqlite3 ~/.claude-mem/claude-mem.db "SELECT * FROM observation_queue"`
+    1. Check database: `sqlite3 ~/.claude-memu/data/ "SELECT * FROM observation_queue"`
     2. Verify session exists: `SELECT * FROM sdk_sessions`
     3. Check worker status: `npm run worker:status`
     4. View worker logs: `npm run worker:logs`
@@ -774,7 +722,7 @@ LIMIT 20
 - Session summaries
 
 **Privacy guarantees:**
-- All data stored locally in `~/.claude-mem/claude-mem.db`
+- All data stored locally in `~/.claude-memu/data/`
 - No cloud uploads (API calls only for AI compression)
 - SQLite file permissions: user-only read/write
 - No analytics or telemetry

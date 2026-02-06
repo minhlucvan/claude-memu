@@ -11,7 +11,7 @@ Claude-memu is a Claude Code plugin providing persistent memory across sessions.
 │                    Claude Code Plugin                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Hooks (5 Lifecycle Events)                                 │
-│  SessionStart → UserPromptSubmit → PostToolUse → Summary    │
+│  Setup → SessionStart → UserPromptSubmit → PostToolUse → Stop│
 ├─────────────────────────────────────────────────────────────┤
 │  Worker Service (Express on :37777)                         │
 ├─────────────────────────────────────────────────────────────┤

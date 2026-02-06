@@ -71,13 +71,13 @@ All free models support:
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
-| `CLAUDE_MEM_PROVIDER` | `claude`, `gemini`, `openrouter` | `claude` | AI provider for observation extraction |
-| `CLAUDE_MEM_OPENROUTER_API_KEY` | string | — | Your OpenRouter API key |
-| `CLAUDE_MEM_OPENROUTER_MODEL` | string | `xiaomi/mimo-v2-flash:free` | Model identifier (see list above) |
-| `CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES` | number | `20` | Max messages in conversation history |
-| `CLAUDE_MEM_OPENROUTER_MAX_TOKENS` | number | `100000` | Token budget safety limit |
-| `CLAUDE_MEM_OPENROUTER_SITE_URL` | string | — | Optional: URL for analytics attribution |
-| `CLAUDE_MEM_OPENROUTER_APP_NAME` | string | `claude-mem` | Optional: App name for analytics |
+| `CLAUDE_MEMU_PROVIDER` | `claude`, `gemini`, `openrouter` | `claude` | AI provider for observation extraction |
+| `CLAUDE_MEMU_OPENROUTER_API_KEY` | string | — | Your OpenRouter API key |
+| `CLAUDE_MEMU_OPENROUTER_MODEL` | string | `xiaomi/mimo-v2-flash:free` | Model identifier (see list above) |
+| `CLAUDE_MEMU_OPENROUTER_MAX_CONTEXT_MESSAGES` | number | `20` | Max messages in conversation history |
+| `CLAUDE_MEMU_OPENROUTER_MAX_TOKENS` | number | `100000` | Token budget safety limit |
+| `CLAUDE_MEMU_OPENROUTER_SITE_URL` | string | — | Optional: URL for analytics attribution |
+| `CLAUDE_MEMU_OPENROUTER_APP_NAME` | string | `claude-mem` | Optional: App name for analytics |
 
 ### Using the Settings UI
 
@@ -91,13 +91,13 @@ Settings are applied immediately—no restart required.
 
 ### Manual Configuration
 
-Edit `~/.claude-mem/settings.json`:
+Edit `~/.claude-memu/settings.json`:
 
 ```json
 {
-  "CLAUDE_MEM_PROVIDER": "openrouter",
-  "CLAUDE_MEM_OPENROUTER_API_KEY": "sk-or-v1-your-key-here",
-  "CLAUDE_MEM_OPENROUTER_MODEL": "xiaomi/mimo-v2-flash:free"
+  "CLAUDE_MEMU_PROVIDER": "openrouter",
+  "CLAUDE_MEMU_OPENROUTER_API_KEY": "sk-or-v1-your-key-here",
+  "CLAUDE_MEMU_OPENROUTER_MODEL": "xiaomi/mimo-v2-flash:free"
 }
 ```
 
@@ -183,7 +183,7 @@ You can switch between providers at any time:
 
 ```json
 {
-  "CLAUDE_MEM_PROVIDER": "openrouter"
+  "CLAUDE_MEMU_PROVIDER": "openrouter"
 }
 ```
 
@@ -239,7 +239,7 @@ This enables:
 ### "OpenRouter API key not configured"
 
 Either:
-- Set `CLAUDE_MEM_OPENROUTER_API_KEY` in `~/.claude-mem/settings.json`, or
+- Set `CLAUDE_MEMU_OPENROUTER_API_KEY` in `~/.claude-memu/settings.json`, or
 - Set the `OPENROUTER_API_KEY` environment variable
 
 ### Rate Limiting
@@ -259,8 +259,8 @@ Verify the model ID is correct:
 ### High Token Usage Warning
 
 If you see warnings about high token usage (>50,000 per request):
-- Reduce `CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES`
-- Reduce `CLAUDE_MEM_OPENROUTER_MAX_TOKENS`
+- Reduce `CLAUDE_MEMU_OPENROUTER_MAX_CONTEXT_MESSAGES`
+- Reduce `CLAUDE_MEMU_OPENROUTER_MAX_TOKENS`
 - Consider a model with larger context window
 
 ### Connection Errors

@@ -7,104 +7,66 @@ description: "Environment variables and settings for Claude-Mem"
 
 ## Settings File
 
-Settings are managed in `~/.claude-mem/settings.json`. The file is auto-created with defaults on first run.
+Settings are managed in `~/.claude-memu/settings.json`. The file is auto-created with defaults on first run.
 
 ### Core Settings
 
 | Setting                       | Default                         | Description                           |
 |-------------------------------|---------------------------------|---------------------------------------|
-| `CLAUDE_MEM_MODEL`            | `sonnet`                        | AI model for processing observations (when using Claude) |
-| `CLAUDE_MEM_PROVIDER`         | `claude`                        | AI provider: `claude`, `gemini`, or `openrouter` |
-| `CLAUDE_MEM_MODE`             | `code`                          | Active mode profile (e.g., `code--es`, `email-investigation`) |
-| `CLAUDE_MEM_CONTEXT_OBSERVATIONS` | `50`                        | Number of observations to inject      |
-| `CLAUDE_MEM_WORKER_PORT`      | `37777`                         | Worker service port                   |
-| `CLAUDE_MEM_WORKER_HOST`      | `127.0.0.1`                     | Worker service host address           |
-| `CLAUDE_MEM_SKIP_TOOLS`       | `ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion` | Comma-separated tools to exclude from observations |
-
-### Gemini Provider Settings
-
-| Setting                       | Default                         | Description                           |
-|-------------------------------|---------------------------------|---------------------------------------|
-| `CLAUDE_MEM_GEMINI_API_KEY`   | —                               | Gemini API key ([get free key](https://aistudio.google.com/app/apikey)) |
-| `CLAUDE_MEM_GEMINI_MODEL`     | `gemini-2.5-flash-lite`          | Gemini model: `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3-flash` |
-
-See [Gemini Provider](usage/gemini-provider) for detailed configuration and free tier information.
-
-### OpenRouter Provider Settings
-
-| Setting                                      | Default                     | Description                           |
-|----------------------------------------------|-----------------------------|---------------------------------------|
-| `CLAUDE_MEM_OPENROUTER_API_KEY`              | —                           | OpenRouter API key ([get key](https://openrouter.ai/keys)) |
-| `CLAUDE_MEM_OPENROUTER_MODEL`                | `xiaomi/mimo-v2-flash:free` | Model identifier (supports 100+ models) |
-| `CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES` | `20`                        | Max messages in conversation history  |
-| `CLAUDE_MEM_OPENROUTER_MAX_TOKENS`           | `100000`                    | Token budget safety limit             |
-| `CLAUDE_MEM_OPENROUTER_SITE_URL`             | —                           | Optional: URL for analytics           |
-| `CLAUDE_MEM_OPENROUTER_APP_NAME`             | `claude-mem`                | Optional: App name for analytics      |
-
-See [OpenRouter Provider](usage/openrouter-provider) for detailed configuration, free model list, and usage guide.
+| `CLAUDE_MEMU_MODE`            | `auto`                          | Storage mode: `auto`, `api`, or `local` |
+| `CLAUDE_MEMU_API_KEY`         | —                               | memU API key (optional, enables API mode) |
+| `CLAUDE_MEMU_API_URL`         | `https://api.memu.so`           | memU API URL (cloud or self-hosted)   |
+| `CLAUDE_MEMU_NAMESPACE`       | `default`                       | Namespace for data isolation          |
+| `CLAUDE_MEMU_CONTEXT_LIMIT`   | `20`                            | Max items in context injection        |
+| `CLAUDE_MEMU_WORKER_PORT`     | `37777`                         | Worker service port                   |
+| `CLAUDE_MEMU_WORKER_HOST`     | `127.0.0.1`                     | Worker service host address           |
 
 ### System Configuration
 
 | Setting                       | Default                         | Description                           |
 |-------------------------------|---------------------------------|---------------------------------------|
-| `CLAUDE_MEM_DATA_DIR`         | `~/.claude-mem`                 | Data directory location               |
-| `CLAUDE_MEM_LOG_LEVEL`        | `INFO`                          | Log verbosity (DEBUG, INFO, WARN, ERROR, SILENT) |
-| `CLAUDE_MEM_PYTHON_VERSION`   | `3.13`                          | Python version for chroma-mcp         |
-| `CLAUDE_CODE_PATH`            | _(auto-detect)_                 | Path to Claude Code CLI (for Windows) |
+| `CLAUDE_MEMU_DATA_DIR`        | `~/.claude-memu`                | Data directory location               |
+| `CLAUDE_MEMU_LOG_LEVEL`       | `INFO`                          | Log verbosity (DEBUG, INFO, WARN, ERROR) |
 
-## Model Configuration
+### Context Configuration
 
-Configure which AI model processes your observations.
+| Setting                               | Default                         | Description                           |
+|---------------------------------------|---------------------------------|---------------------------------------|
+| `CLAUDE_MEMU_CONTEXT_TYPES`           | all types                       | Observation types to include in context |
+| `CLAUDE_MEMU_CONTEXT_CONCEPTS`        | all concepts                    | Concepts to include in context        |
 
-### Available Models
+### Feature Toggles
 
-Shorthand model names automatically forward to the latest version:
+| Setting                               | Default                         | Description                           |
+|---------------------------------------|---------------------------------|---------------------------------------|
+| `CLAUDE_MEMU_PROACTIVE_CONTEXT`       | `true`                          | Enable LLM-powered proactive context (API mode) |
+| `CLAUDE_MEMU_SHOW_SUMMARIES`          | `true`                          | Show summaries in context injection   |
 
-- `haiku` - Fast, cost-efficient
-- `sonnet` - Balanced (default)
-- `opus` - Most capable
+## Storage Mode Configuration
 
-### Using the Interactive Script
-
-```bash
-./claude-mem-settings.sh
-```
-
-This script manages settings in `~/.claude-mem/settings.json`.
-
-### Manual Configuration
-
-Edit `~/.claude-mem/settings.json`:
-
-```json
-{
-  "CLAUDE_MEM_MODEL": "sonnet"
-}
-```
-
-## Mode Configuration
-
-Configure the active workflow mode and language.
+Configure the storage backend for your memories.
 
 ### Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `CLAUDE_MEM_MODE` | `code` | Defines behavior and language. See [Modes & Languages](modes). |
+| `CLAUDE_MEMU_MODE` | `auto` | Storage mode. See [Modes & Languages](modes). |
 
-### Examples
+### Storage Modes
 
-**Spanish Code Mode:**
+| Mode | Description |
+|------|-------------|
+| `auto` | Use API if `CLAUDE_MEMU_API_KEY` is provided, otherwise local (default) |
+| `api` | Force memU API mode (requires `CLAUDE_MEMU_API_KEY`) |
+| `local` | Force local file-based storage |
+
+### Manual Configuration
+
+Edit `~/.claude-memu/settings.json`:
+
 ```json
 {
-  "CLAUDE_MEM_MODE": "code--es"
-}
-```
-
-**Email Investigation Mode:**
-```json
-{
-  "CLAUDE_MEM_MODE": "email-investigation"
+  "CLAUDE_MEMU_MODE": "auto"
 }
 ```
 
@@ -113,17 +75,17 @@ Configure the active workflow mode and language.
 ### Data Directory Structure
 
 The data directory location depends on the environment:
-- **Production (installed plugin)**: `~/.claude-mem/` (always, regardless of CLAUDE_PLUGIN_ROOT)
-- **Development**: Can be overridden with `CLAUDE_MEM_DATA_DIR`
+- **Production (installed plugin)**: `~/.claude-memu/` (always, regardless of CLAUDE_PLUGIN_ROOT)
+- **Development**: Can be overridden with `CLAUDE_MEMU_DATA_DIR`
 
 ```
-~/.claude-mem/
-├── claude-mem.db           # SQLite database
-├── .install-version        # Cached version for smart installer
-├── worker.port             # Current worker port file
+~/.claude-memu/
+├── settings.json           # User settings
+├── data/                   # Per-project JSON files (local mode)
+│   ├── my-project.json
+│   └── other-project.json
 └── logs/
-    ├── worker-out.log      # Worker stdout logs
-    └── worker-error.log    # Worker stderr logs
+    └── worker-YYYY-MM-DD.log  # Daily rotating logs
 ```
 
 ### Plugin Directory Structure
@@ -136,12 +98,10 @@ ${CLAUDE_PLUGIN_ROOT}/
 ├── hooks/
 │   └── hooks.json          # Hook configuration
 ├── scripts/                # Built executables
+│   ├── setup.sh            # Setup hook script
 │   ├── smart-install.js    # Smart installer script
-│   ├── context-hook.js     # Context injection hook
-│   ├── new-hook.js         # Session creation hook
-│   ├── save-hook.js        # Observation capture hook
-│   ├── summary-hook.js     # Summary generation hook
-│   ├── worker-service.cjs  # Worker service (CJS)
+│   ├── bun-runner.js       # Bun runtime wrapper
+│   ├── worker-service.cjs  # Worker service (CJS) - handles all hook events
 │   └── mcp-server.cjs      # MCP search server (CJS)
 └── ui/
     └── viewer.html         # Web viewer UI bundle
@@ -151,40 +111,47 @@ ${CLAUDE_PLUGIN_ROOT}/
 
 ### Hooks Configuration
 
-Hooks are configured in `plugin/hooks/hooks.json`:
+Hooks are configured in `plugin/hooks/hooks.json`. All hooks use the `bun-runner.js` wrapper to invoke `worker-service.cjs` subcommands:
 
 ```json
 {
-  "description": "Claude-mem memory system hooks",
+  "description": "Claude-memu memory system hooks",
   "hooks": {
-    "SessionStart": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/smart-install.js && node ${CLAUDE_PLUGIN_ROOT}/scripts/context-hook.js",
-        "timeout": 120
-      }]
-    }],
-    "UserPromptSubmit": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/new-hook.js",
-        "timeout": 120
-      }]
-    }],
-    "PostToolUse": [{
+    "Setup": [{
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/save-hook.js",
+        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh",
         "timeout": 120
       }]
     }],
+    "SessionStart": [{
+      "matcher": "startup|clear|compact",
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/smart-install.js\"", "timeout": 300 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code context", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code user-message", "timeout": 60 }
+      ]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code session-init", "timeout": 60 }
+      ]
+    }],
+    "PostToolUse": [{
+      "matcher": "*",
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code observation", "timeout": 120 }
+      ]
+    }],
     "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/summary-hook.js",
-        "timeout": 120
-      }]
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code summarize", "timeout": 120 }
+      ]
     }]
   }
 }
@@ -203,25 +170,9 @@ Search operations are provided via:
 
 ## Version Channel
 
-Claude-Mem supports switching between stable and beta versions via the web viewer UI.
-
-### Accessing Version Channel
-
-1. Open the viewer at http://localhost:37777
-2. Click the Settings gear icon
-3. Find the **Version Channel** section
-
-### Switching Versions
-
-- **Try Beta**: Click "Try Beta (Endless Mode)" to switch to the beta branch with experimental features
-- **Switch to Stable**: Click "Switch to Stable" to return to the production release
-- **Check for Updates**: Pull the latest changes for your current branch
+Claude-Memu supports switching between stable and beta versions. The backend API endpoints exist (`/api/branch/status`, `/api/branch/switch`, `/api/branch/update`) but the UI for version switching is not yet available in the web viewer.
 
 **Your memory data is preserved** when switching versions. Only the plugin code changes.
-
-<Note>
-Endless Mode is experimental and slower than standard mode. See [Beta Features](beta-features) for full details and important limitations.
-</Note>
 
 ## Worker Service Management
 
@@ -233,7 +184,7 @@ Claude-mem can automatically generate `CLAUDE.md` files in your project folders 
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED` | `false` | Enable auto-generation of folder CLAUDE.md files |
+| `CLAUDE_MEMU_FOLDER_CLAUDEMD_ENABLED` | `false` | Enable auto-generation of folder CLAUDE.md files |
 
 See [Folder Context Files](usage/folder-context) for full documentation on how this feature works, configuration options, and git integration recommendations.
 
@@ -254,17 +205,16 @@ The Terminal Preview shows exactly what will be injected at the start of your ne
 
 ### Loading Settings
 
-Control how many observations are injected:
+Control how many items are injected:
 
-| Setting | Default | Range | Description |
-|---------|---------|-------|-------------|
-| **Observations** | 50 | 1-200 | Total number of recent observations to include |
-| **Sessions** | 10 | 1-50 | Number of recent sessions to pull observations from |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Context Limit** (`CLAUDE_MEMU_CONTEXT_LIMIT`) | 20 | Max items in context injection |
 
 **Considerations**:
 - **Higher values** = More context but slower SessionStart and more tokens used
 - **Lower values** = Faster SessionStart but less historical awareness
-- Default of 50 observations from 10 sessions balances context richness with performance
+- Default of 20 items balances context richness with performance
 
 ### Filter Settings
 
@@ -322,21 +272,14 @@ Token economics help you understand the value of cached observations vs. re-read
 
 ### Manual Configuration
 
-Settings are stored in `~/.claude-mem/settings.json`:
+Settings are stored in `~/.claude-memu/settings.json`:
 
 ```json
 {
-  "CLAUDE_MEM_CONTEXT_OBSERVATIONS": "100",
-  "CLAUDE_MEM_CONTEXT_SESSION_COUNT": "20",
-  "CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES": "bugfix,decision,discovery",
-  "CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS": "how-it-works,gotcha",
-  "CLAUDE_MEM_CONTEXT_FULL_COUNT": "10",
-  "CLAUDE_MEM_CONTEXT_FULL_FIELD": "narrative",
-  "CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS": "true",
-  "CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS": "true",
-  "CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT": "true",
-  "CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY": "false",
-  "CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE": "false"
+  "CLAUDE_MEMU_CONTEXT_LIMIT": "20",
+  "CLAUDE_MEMU_CONTEXT_TYPES": "bugfix,decision,discovery",
+  "CLAUDE_MEMU_CONTEXT_CONCEPTS": "how-it-works,gotcha",
+  "CLAUDE_MEMU_SHOW_SUMMARIES": "true"
 }
 ```
 
@@ -344,23 +287,23 @@ Settings are stored in `~/.claude-mem/settings.json`:
 
 ## Customization
 
-Settings can be customized in `~/.claude-mem/settings.json`.
+Settings can be customized in `~/.claude-memu/settings.json`.
 
 ### Custom Data Directory
 
-Edit `~/.claude-mem/settings.json`:
+Edit `~/.claude-memu/settings.json`:
 ```json
 {
-  "CLAUDE_MEM_DATA_DIR": "/custom/path"
+  "CLAUDE_MEMU_DATA_DIR": "/custom/path"
 }
 ```
 
 ### Custom Worker Port
 
-Edit `~/.claude-mem/settings.json`:
+Edit `~/.claude-memu/settings.json`:
 ```json
 {
-  "CLAUDE_MEM_WORKER_PORT": "38000"
+  "CLAUDE_MEMU_WORKER_PORT": "38000"
 }
 ```
 
@@ -368,44 +311,6 @@ Then restart the worker:
 ```bash
 npm run worker:restart
 ```
-
-### Custom Model
-
-Edit `~/.claude-mem/settings.json`:
-```json
-{
-  "CLAUDE_MEM_MODEL": "opus"
-}
-```
-
-Then restart the worker:
-```bash
-export CLAUDE_MEM_MODEL=opus
-npm run worker:restart
-```
-
-### Custom Skip Tools
-
-Control which tools are excluded from observations. Edit `~/.claude-mem/settings.json`:
-```json
-{
-  "CLAUDE_MEM_SKIP_TOOLS": "ListMcpResourcesTool,SlashCommand,Skill"
-}
-```
-
-**Default excluded tools:**
-- `ListMcpResourcesTool`
-- `SlashCommand`
-- `Skill`
-- `TodoWrite`
-- `AskUserQuestion`
-
-**Common customizations:**
-- Include TodoWrite: Remove from skip list to track task planning
-- Include AskUserQuestion: Remove to capture decision-making conversations
-- Skip additional tools: Add tool names to reduce observation noise
-
-Changes take effect on the next tool execution (no worker restart needed).
 
 ## Advanced Configuration
 
@@ -420,11 +325,12 @@ Modify timeouts in `plugin/hooks/hooks.json`:
 ```
 
 Recommended values:
-- SessionStart: 120s (needs time for smart install check and context retrieval)
+- Setup: 120s
+- SessionStart smart-install: 300s (needs time for npm install on first run)
+- SessionStart worker-start/hooks: 60s each
 - UserPromptSubmit: 60s
-- PostToolUse: 120s (can process many observations)
-- Stop: 60s
-- SessionEnd: 60s
+- PostToolUse: 60s (worker start) + 120s (observation)
+- Stop: 60s (worker start) + 120s (summarize)
 
 **Note**: With smart install caching (v5.0.3+), SessionStart is typically very fast (10ms) unless dependencies need installation.
 
@@ -437,7 +343,7 @@ The worker service is managed by Bun and will automatically restart if it encoun
 Enable debug logging:
 
 ```bash
-export DEBUG=claude-mem:*
+export CLAUDE_MEMU_LOG_LEVEL=DEBUG
 npm run worker:restart
 npm run worker:logs
 ```
@@ -461,8 +367,8 @@ npm run worker:logs
 
 2. Verify environment variables:
    ```bash
-   echo $CLAUDE_MEM_MODEL
-   echo $CLAUDE_MEM_WORKER_PORT
+   echo $CLAUDE_MEMU_MODE
+   echo $CLAUDE_MEMU_WORKER_PORT
    ```
 
 3. Check worker logs:
@@ -470,22 +376,13 @@ npm run worker:logs
    npm run worker:logs
    ```
 
-### Invalid Model Name
-
-If you specify an invalid model name, the worker will fall back to `sonnet` and log a warning.
-
-Valid shorthand models (forward to latest version):
-- haiku
-- sonnet
-- opus
-
 ### Port Already in Use
 
 If port 37777 is already in use:
 
 1. Set custom port:
    ```bash
-   export CLAUDE_MEM_WORKER_PORT=38000
+   export CLAUDE_MEMU_WORKER_PORT=38000
    ```
 
 2. Restart worker:
@@ -493,9 +390,9 @@ If port 37777 is already in use:
    npm run worker:restart
    ```
 
-3. Verify new port:
+3. Verify in settings:
    ```bash
-   cat ~/.claude-mem/worker.port
+   cat ~/.claude-memu/settings.json
    ```
 
 ## Next Steps

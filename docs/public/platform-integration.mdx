@@ -15,7 +15,7 @@ icon: plug
 
 ```typescript
 const WORKER_BASE_URL = 'http://localhost:37777';
-const DEFAULT_PORT = 37777; // Override with CLAUDE_MEM_WORKER_PORT
+const DEFAULT_PORT = 37777; // Override with CLAUDE_MEMU_WORKER_PORT
 ```
 
 ### Most Common Operations
@@ -46,10 +46,10 @@ GET /api/context/recent?project=my-project&limit=3
 ### Environment Variables
 
 ```bash
-CLAUDE_MEM_MODEL=claude-sonnet-4-5          # Model for observations/summaries
-CLAUDE_MEM_CONTEXT_OBSERVATIONS=50          # Observations injected at SessionStart
-CLAUDE_MEM_WORKER_PORT=37777                # Worker service port
-CLAUDE_MEM_PYTHON_VERSION=3.13              # Python version for chroma-mcp
+CLAUDE_MEMU_MODEL=claude-sonnet-4-5          # Model for observations/summaries
+CLAUDE_MEMU_CONTEXT_OBSERVATIONS=50          # Observations injected at SessionStart
+CLAUDE_MEMU_WORKER_PORT=37777                # Worker service port
+CLAUDE_MEMU_PYTHON_VERSION=3.13              # Python version for chroma-mcp
 ```
 
 ### Build Commands (Local Development)
@@ -314,7 +314,7 @@ GET /api/stats
     "port": 37777
   },
   "database": {
-    "path": "~/.claude-mem/claude-mem.db",
+    "path": "~/.claude-memu/claude-memu.db",
     "size": 1048576,
     "observations": 500,
     "sessions": 50,
@@ -1216,7 +1216,7 @@ describe('Worker Integration', () => {
   beforeAll(async () => {
     // Start worker process
     workerProcess = spawn('node', ['dist/worker-service.js'], {
-      env: { ...process.env, CLAUDE_MEM_WORKER_PORT: '37778' }
+      env: { ...process.env, CLAUDE_MEMU_WORKER_PORT: '37778' }
     });
 
     // Wait for worker to be ready
