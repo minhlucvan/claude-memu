@@ -1,90 +1,180 @@
-# Claude-Mem: AI Development Instructions
+# Claude-Memu: AI Development Instructions
 
-Claude-mem is a Claude Code plugin providing persistent memory across sessions. It captures tool usage, compresses observations using the Claude Agent SDK, and injects relevant context into future sessions.
+Claude-memu is a Claude Code plugin providing persistent memory across sessions. Supports two storage modes:
+- **Local mode**: File-based JSON storage (no API key required)
+- **API mode**: memU cloud/self-hosted API with semantic search
 
 ## Architecture
 
-**5 Lifecycle Hooks**: SessionStart → UserPromptSubmit → PostToolUse → Summary → SessionEnd
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Claude Code Plugin                        │
+├─────────────────────────────────────────────────────────────┤
+│  Hooks (5 Lifecycle Events)                                 │
+│  SessionStart → UserPromptSubmit → PostToolUse → Summary    │
+├─────────────────────────────────────────────────────────────┤
+│  Worker Service (Express on :37777)                         │
+├─────────────────────────────────────────────────────────────┤
+│  UnifiedStore (auto-selects based on API key)               │
+├────────────────────────┬────────────────────────────────────┤
+│  LocalStore            │  MemuStore                         │
+│  (File-based JSON)     │  (memU API client)                 │
+├────────────────────────┴────────────────────────────────────┤
+│  ~/.claude-memu/data/  │  memU API (api.memu.so/self-hosted)│
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Hooks** (`src/hooks/*.ts`) - TypeScript → ESM, built to `plugin/scripts/*-hook.js`
+## Core Components
 
-**Worker Service** (`src/services/worker-service.ts`) - Express API on port 37777, Bun-managed, handles AI processing asynchronously
+**UnifiedStore** (`src/services/memu/UnifiedStore.ts`)
+- Auto-selects storage backend based on configuration
+- Common interface for both local and API modes
+- Singleton pattern via `getStore()` / `initializeStore()`
 
-**Database** (`src/services/sqlite/`) - SQLite3 at `~/.claude-mem/claude-mem.db`
+**LocalStore** (`src/services/memu/LocalStore.ts`)
+- File-based JSON storage in `~/.claude-memu/data/`
+- Per-project JSON files (one file per project)
+- Full-text search via substring matching
+- No external dependencies
 
-**Search Skill** (`plugin/skills/mem-search/SKILL.md`) - HTTP API for searching past work, auto-invoked when users ask about history
+**MemuStore** (`src/services/memu/MemuStore.ts`)
+- Primary storage service for memU API mode
+- Session management (transient, per worker lifecycle)
+- RAG-based semantic search
+- Proactive context feature
+- Project category management
 
-**Chroma** (`src/services/sync/ChromaSync.ts`) - Vector embeddings for semantic search
+**MemuClient** (`src/services/memu/memu-client.ts`)
+- HTTP client for memU API
+- Supports cloud (api.memu.so) or self-hosted
+- Methods: memorize, retrieve, categories, items
 
-**Viewer UI** (`src/ui/viewer/`) - React interface at http://localhost:37777, built to `plugin/ui/viewer.html`
+**Types** (`src/services/memu/types.ts`)
+- Session, Observation, Summary, UserPrompt types
+- SearchQuery, SearchResults, ContextPayload
+- memU API request/response types
 
-## Privacy Tags
-- `<private>content</private>` - User-level privacy control (manual, prevents storage)
+## memU Concepts
 
-**Implementation**: Tag stripping happens at hook layer (edge processing) before data reaches worker/database. See `src/utils/tag-stripping.ts` for shared utilities.
+**Categories** → Projects (one category per project)
+**Items** → Observations, Summaries, User Prompts
+**Tags** → `session:`, `project:`, `type:`, concepts
+**Retrieve** → RAG or LLM method with proactive context
+
+## Storage Modes
+
+| Mode | Description |
+|------|-------------|
+| `auto` | Use API if key provided, otherwise local (default) |
+| `api` | Force memU API mode (requires API key) |
+| `local` | Force local file-based storage |
+
+## Configuration
+
+Settings in `~/.claude-memu/settings.json`:
+
+```json
+{
+  "CLAUDE_MEMU_MODE": "auto",
+  "CLAUDE_MEMU_API_KEY": "your-api-key",
+  "CLAUDE_MEMU_API_URL": "https://api.memu.so",
+  "CLAUDE_MEMU_NAMESPACE": "default",
+  "CLAUDE_MEMU_WORKER_PORT": "37777",
+  "CLAUDE_MEMU_CONTEXT_LIMIT": "20",
+  "CLAUDE_MEMU_PROACTIVE_CONTEXT": "true"
+}
+```
+
+Environment variables override file settings.
+
+## File Locations
+
+- **Source**: `src/`
+- **Built Plugin**: `plugin/`
+- **Settings**: `~/.claude-memu/settings.json`
+- **Local Data**: `~/.claude-memu/data/` (per-project JSON files)
+- **Logs**: `~/.claude-memu/logs/`
 
 ## Build Commands
 
 ```bash
-npm run build-and-sync        # Build, sync to marketplace, restart worker
+npm run build-and-sync        # Build and sync to marketplace
+npm run build                 # TypeScript compilation only
 ```
 
-## Configuration
+## Privacy Tags
 
-Settings are managed in `~/.claude-mem/settings.json`. The file is auto-created with defaults on first run.
+`<private>content</private>` - Content stripped at hook layer before reaching memU.
 
-## File Locations
+## Exit Codes
 
-- **Source**: `<project-root>/src/`
-- **Built Plugin**: `<project-root>/plugin/`
-- **Installed Plugin**: `~/.claude/plugins/marketplaces/thedotmack/`
-- **Database**: `~/.claude-mem/claude-mem.db`
-- **Chroma**: `~/.claude-mem/chroma/`
-
-## Exit Code Strategy
-
-Claude-mem hooks use specific exit codes per Claude Code's hook contract:
-
-- **Exit 0**: Success or graceful shutdown (Windows Terminal closes tabs)
-- **Exit 1**: Non-blocking error (stderr shown to user, continues)
-- **Exit 2**: Blocking error (stderr fed to Claude for processing)
-
-**Philosophy**: Worker/hook errors exit with code 0 to prevent Windows Terminal tab accumulation. The wrapper/plugin layer handles restart logic. ERROR-level logging is maintained for diagnostics.
-
-See `private/context/claude-code/exit-codes.md` for full hook behavior matrix.
+- **0**: Success
+- **1**: Non-blocking error (shown to user)
+- **2**: Blocking error (fed to Claude)
 
 ## Requirements
 
-- **Bun** (all platforms - auto-installed if missing)
-- **uv** (all platforms - auto-installed if missing, provides Python for Chroma)
-- Node.js
+- **Bun** (auto-installed)
+- **Node.js** 18+
+- **memU API Key** (optional - only for API mode)
 
-## Documentation
+## Key APIs
 
-**Public Docs**: https://docs.claude-mem.ai (Mintlify)
-**Source**: `docs/public/` - MDX files, edit `docs.json` for navigation
-**Deploy**: Auto-deploys from GitHub on push to main
+### UnifiedStore (recommended)
 
-## Pro Features Architecture
+```typescript
+import { initializeStore, getStore } from './services/memu';
 
-Claude-mem is designed with a clean separation between open-source core functionality and optional Pro features.
+// Initialize (auto-selects local or API mode)
+const store = await initializeStore();
 
-**Open-Source Core** (this repository):
+// Check mode
+console.log(store.getMode()); // 'local' or 'api'
+console.log(store.isLocalMode()); // true/false
 
-- All worker API endpoints on localhost:37777 remain fully open and accessible
-- Pro features are headless - no proprietary UI elements in this codebase
-- Pro integration points are minimal: settings for license keys, tunnel provisioning logic
-- The architecture ensures Pro features extend rather than replace core functionality
+// Sessions
+const session = await store.createSession(contentSessionId, project, prompt);
+store.incrementPromptCounter(sessionId);
 
-**Pro Features** (coming soon, external):
+// Observations
+await store.storeObservation(memorySessionId, project, observation);
+const recent = await store.getRecentObservations(project, 20);
 
-- Enhanced UI (Memory Stream) connects to the same localhost:37777 endpoints as the open viewer
-- Additional features like advanced filtering, timeline scrubbing, and search tools
-- Access gated by license validation, not by modifying core endpoints
-- Users without Pro licenses continue using the full open-source viewer UI without limitation
+// Summaries
+await store.storeSummary(memorySessionId, project, summary);
+const summary = await store.getSummary(memorySessionId);
 
-This architecture preserves the open-source nature of the project while enabling sustainable development through optional paid features.
+// Search
+const results = await store.search({ text: 'query', project });
+
+// Context Injection
+const context = await store.getContextForProject(project, 10);
+```
+
+### MemuClient
+
+```typescript
+// Create client
+const client = createMemuClient({ apiKey, apiUrl, namespace });
+
+// Memorize (continuous learning)
+const task = await client.memorize({ content, modality: 'conversation' });
+
+// Retrieve (query)
+const response = await client.retrieve({
+  queries: [{ role: 'user', content: 'query' }],
+  method: 'rag',
+  limit: 20
+});
+
+// Categories
+const categories = await client.listCategories();
+await client.createCategory({ name: project, description });
+
+// Items
+await client.createItem({ memoryType: 'decision', content, tags });
+```
 
 ## Important
 
-No need to edit the changelog ever, it's generated automatically.
+No need to edit the changelog - it's generated automatically.
