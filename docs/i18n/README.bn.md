@@ -3,11 +3,11 @@
 ---
 <h1 align="center">
   <br>
-  <a href="https://github.com/thedotmack/claude-mem">
+  <a href="https://github.com/minhlucvan/claude-mem">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/claude-mem-logo-for-dark-mode.webp">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/claude-mem-logo-for-light-mode.webp">
-      <img src="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/claude-mem-logo-for-light-mode.webp" alt="Claude-Mem" width="400">
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/claude-mem-logo-for-dark-mode.webp">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/claude-mem-logo-for-light-mode.webp">
+      <img src="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/claude-mem-logo-for-light-mode.webp" alt="Claude-Mem" width="400">
     </picture>
   </a>
   <br>
@@ -56,7 +56,7 @@
   <a href="package.json">
     <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg" alt="Node">
   </a>
-  <a href="https://github.com/thedotmack/awesome-claude-code">
+  <a href="https://github.com/minhlucvan/awesome-claude-code">
     <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome Claude Code">
   </a>
 </p>
@@ -64,9 +64,9 @@
 <p align="center">
   <a href="https://trendshift.io/repositories/15496" target="_blank">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/trendshift-badge-dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/trendshift-badge.svg">
-      <img src="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/trendshift-badge.svg" alt="thedotmack/claude-mem | Trendshift" width="250" height="55"/>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/trendshift-badge-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/trendshift-badge.svg">
+      <img src="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/trendshift-badge.svg" alt="minhlucvan/claude-mem | Trendshift" width="250" height="55"/>
     </picture>
   </a>
 </p>
@@ -74,9 +74,9 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/thedotmack/claude-mem">
+  <a href="https://github.com/minhlucvan/claude-mem">
     <picture>
-      <img src="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/cm-preview.gif" alt="Claude-Mem Preview" width="800">
+      <img src="https://raw.githubusercontent.com/minhlucvan/claude-mem/main/docs/public/cm-preview.gif" alt="Claude-Mem Preview" width="800">
     </picture>
   </a>
 </p>
@@ -102,7 +102,7 @@
 টার্মিনালে একটি নতুন Claude Code সেশন শুরু করুন এবং নিম্নলিখিত কমান্ডগুলি প্রবেশ করান:
 
 ```
-> /plugin marketplace add thedotmack/claude-mem
+> /plugin marketplace add minhlucvan/claude-mem
 
 > /plugin install claude-mem
 ```
@@ -253,7 +253,7 @@ Endless Mode এবং এটি কীভাবে চেষ্টা করব
 স্বয়ংক্রিয় জেনারেটর দিয়ে বিস্তৃত বাগ রিপোর্ট তৈরি করুন:
 
 ```bash
-cd ~/.claude/plugins/marketplaces/thedotmack
+cd ~/.claude/plugins/marketplaces/minhlucvan
 npm run bug-report
 ```
 
@@ -275,7 +275,7 @@ npm run bug-report
 
 এই প্রকল্পটি **GNU Affero General Public License v3.0** (AGPL-3.0) এর অধীনে লাইসেন্সপ্রাপ্ত।
 
-Copyright (C) 2025 Alex Newman (@thedotmack). সর্বস্বত্ব সংরক্ষিত।
+Copyright (C) 2025 Alex Newman (@minhlucvan). সর্বস্বত্ব সংরক্ষিত।
 
 সম্পূর্ণ বিবরণের জন্য [LICENSE](LICENSE) ফাইল দেখুন।
 
@@ -293,9 +293,9 @@ Copyright (C) 2025 Alex Newman (@thedotmack). সর্বস্বত্ব স
 ## সাপোর্ট
 
 - **ডকুমেন্টেশন**: [docs/](docs/)
-- **ইস্যু**: [GitHub Issues](https://github.com/thedotmack/claude-mem/issues)
-- **রিপোজিটরি**: [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
-- **লেখক**: Alex Newman ([@thedotmack](https://github.com/thedotmack))
+- **ইস্যু**: [GitHub Issues](https://github.com/minhlucvan/claude-mem/issues)
+- **রিপোজিটরি**: [github.com/minhlucvan/claude-mem](https://github.com/minhlucvan/claude-mem)
+- **লেখক**: Alex Newman ([@minhlucvan](https://github.com/minhlucvan))
 
 ---
 
