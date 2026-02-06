@@ -1,11 +1,11 @@
 ---
 title: "Hook Lifecycle"
-description: "Complete guide to the 5-stage memory agent lifecycle for platform implementers"
+description: "Complete guide to the memory agent hook lifecycle for platform implementers"
 ---
 
 # Hook Lifecycle
 
-Claude-Mem implements a **5-stage hook system** that captures development work across Claude Code sessions. This document provides a complete technical reference for developers implementing this pattern on other platforms.
+Claude-Memu implements a **hook system** with 5 registered hooks (Setup, SessionStart, UserPromptSubmit, PostToolUse, Stop) that captures development work across Claude Code sessions. All hooks use the `bun-runner.js` wrapper to invoke `worker-service.cjs` subcommands. This document provides a complete technical reference for developers implementing this pattern on other platforms.
 
 ## Architecture Overview
 
@@ -21,12 +21,12 @@ graph TB
         HOOKS[Hook Event Handlers]
         ACT --> HOOKS
 
-        subgraph HOOK_HANDLERS["5 Lifecycle Hooks"]
-            H1[SessionStart<br/>activate function]
-            H2[UserPromptSubmit<br/>command handler]
-            H3[PostToolUse<br/>middleware]
-            H4[Stop<br/>idle timeout]
-            H5[SessionEnd<br/>deactivate function]
+        subgraph HOOK_HANDLERS["Lifecycle Hooks"]
+            H0[Setup<br/>setup.sh]
+            H1[SessionStart<br/>smart-install + worker + context + user-message]
+            H2[UserPromptSubmit<br/>worker + session-init]
+            H3[PostToolUse<br/>worker + observation]
+            H4[Stop<br/>worker + summarize]
         end
 
         HOOKS --> HOOK_HANDLERS
@@ -41,9 +41,9 @@ graph TB
         API --> AGENT[SDK Agent]
         API --> DB[Database Manager]
 
-        AGENT -->|Event-Driven| CLAUDE[Claude Agent SDK]
-        CLAUDE --> SQLITE[(SQLite + FTS5)]
-        CLAUDE --> CHROMA[(Chroma Vectors)]
+        AGENT -->|Event-Driven| STORE[UnifiedStore]
+        STORE --> LOCAL[(LocalStore<br/>JSON files)]
+        STORE --> MEMU[(MemuStore<br/>memU API)]
     end
 
     style EXT fill:#e1f5ff
@@ -173,71 +173,64 @@ graph TB
 
 **Critical Pattern:** The extension's HTTP call has a 2-second timeout and doesn't wait for AI processing. The worker handles compression asynchronously using an event-driven queue.
 
-## The 5 Lifecycle Stages
+## The Lifecycle Stages
 
-| Stage | Hook | Trigger | Purpose |
-|-------|------|---------|---------|
-| **1. SessionStart** | `context-hook.js` | User opens Claude Code | Inject prior context silently |
-| **2. UserPromptSubmit** | `new-hook.js` | User submits a prompt | Create/get session, save prompt, init worker |
-| **3. PostToolUse** | `save-hook.js` | Claude uses any tool | Queue observation for AI compression |
-| **4. Stop** | `summary-hook.js` | User stops asking questions | Generate session summary |
-| **5. SessionEnd** | `cleanup-hook.js` | Session closes | Mark session completed |
+| Stage | Hook Event | Worker Subcommand | Trigger | Purpose |
+|-------|-----------|-------------------|---------|---------|
+| **0. Setup** | `Setup` | `setup.sh` | Plugin installation | Install dependencies |
+| **1. SessionStart** | `SessionStart` | `context` + `user-message` | User opens Claude Code | Smart-install, start worker, inject prior context |
+| **2. UserPromptSubmit** | `UserPromptSubmit` | `session-init` | User submits a prompt | Start worker, create/init session |
+| **3. PostToolUse** | `PostToolUse` | `observation` | Claude uses any tool | Start worker, queue observation |
+| **4. Stop** | `Stop` | `summarize` | User stops asking questions | Start worker, generate session summary |
 
 ## Hook Configuration
 
-Hooks are configured in `plugin/hooks/hooks.json`:
+Hooks are configured in `plugin/hooks/hooks.json`. All lifecycle hooks use the `bun-runner.js` wrapper to invoke `worker-service.cjs` subcommands:
 
 ```json
 {
   "hooks": {
-    "SessionStart": [{
-      "matcher": "startup|clear|compact",
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/smart-install.js",
-        "timeout": 300
-      }, {
-        "type": "command",
-        "command": "bun ${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs start",
-        "timeout": 60
-      }, {
-        "type": "command",
-        "command": "bun ${CLAUDE_PLUGIN_ROOT}/scripts/context-hook.js",
-        "timeout": 60
-      }]
-    }],
-    "UserPromptSubmit": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/new-hook.js",
-        "timeout": 120
-      }]
-    }],
-    "PostToolUse": [{
+    "Setup": [{
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/save-hook.js",
+        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh",
         "timeout": 120
       }]
+    }],
+    "SessionStart": [{
+      "matcher": "startup|clear|compact",
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/smart-install.js\"", "timeout": 300 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code context", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code user-message", "timeout": 60 }
+      ]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code session-init", "timeout": 60 }
+      ]
+    }],
+    "PostToolUse": [{
+      "matcher": "*",
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code observation", "timeout": 120 }
+      ]
     }],
     "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/summary-hook.js",
-        "timeout": 120
-      }]
-    }],
-    "SessionEnd": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-hook.js",
-        "timeout": 120
-      }]
+      "hooks": [
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" start", "timeout": 60 },
+        { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/bun-runner.js\" \"${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs\" hook claude-code summarize", "timeout": 120 }
+      ]
     }]
   }
 }
 ```
+
+**Note:** There is no `SessionEnd` hook. Session cleanup is handled internally by the worker service.
 
 ---
 
@@ -246,9 +239,10 @@ Hooks are configured in `plugin/hooks/hooks.json`:
 **Timing**: When user opens Claude Code or resumes session
 
 **Hooks Triggered** (in order):
-1. `smart-install.js` - Ensures dependencies are installed
-2. `worker-service.cjs start` - Starts the worker service
-3. `context-hook.js` - Fetches and silently injects prior session context
+1. `smart-install.js` - Ensures dependencies are installed (300s timeout)
+2. `bun-runner.js worker-service.cjs start` - Starts the worker service (60s timeout)
+3. `bun-runner.js worker-service.cjs hook claude-code context` - Fetches and injects prior session context (60s timeout)
+4. `bun-runner.js worker-service.cjs hook claude-code user-message` - Captures user message (60s timeout)
 
 <Note>
 As of Claude Code 2.1.0 (ultrathink update), SessionStart hooks no longer display user-visible messages. Context is silently injected via `hookSpecificOutput.additionalContext`.
@@ -615,77 +609,9 @@ Body: { isProcessing: false }
 
 ---
 
-## Stage 5: SessionEnd
+---
 
-**Timing**: When Claude Code session closes (exit, clear, logout, etc.)
-
-**Hook**: `cleanup-hook.js`
-
-### Sequence Diagram
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant IDE as IDE/Extension
-    participant CleanupHook as cleanup-hook.js
-    participant Worker as Worker Service
-    participant DB as SQLite Database
-    participant SSE as SSE Clients (Viewer UI)
-
-    User->>IDE: Closes session<br/>(exit, clear, logout)
-    IDE->>CleanupHook: SessionEnd hook triggered<br/>{ session_id, cwd, transcript_path, reason }
-
-    CleanupHook->>Worker: POST /api/sessions/complete<br/>{ claudeSessionId, reason }<br/>(fire-and-forget, 2s timeout)
-
-    CleanupHook-->>IDE: { continue: true, suppressOutput: true }
-    IDE-->>User: Session closed
-
-    Note over Worker,SSE: Async path
-
-    Worker->>Worker: Lookup sessionDbId from claudeSessionId
-    Worker->>DB: UPDATE sdk_sessions<br/>SET status = 'completed', completed_at = NOW()<br/>WHERE claude_session_id = claudeSessionId
-    Worker->>SSE: Broadcast session completion event<br/>(for live viewer UI updates)
-
-    SSE-->>SSE: Update UI to show session as completed
-
-    Note over CleanupHook,SSE: Total sync time: ~2ms
-```
-
-**Key Pattern:** Session completion is tracked for analytics and UI updates, but doesn't prevent the user from closing the IDE.
-
-**Input** (via stdin):
-```json
-{
-  "session_id": "claude-session-123",
-  "cwd": "/path/to/project",
-  "transcript_path": "/path/to/transcript.jsonl",
-  "reason": "exit"
-}
-```
-
-**Processing Steps**:
-
-```typescript
-// Send session complete (fire-and-forget HTTP)
-POST http://127.0.0.1:37777/api/sessions/complete
-Body: {
-  claudeSessionId: session_id,
-  reason: string  // 'exit' | 'clear' | 'logout' | 'prompt_input_exit' | 'other'
-}
-Timeout: 2000ms
-```
-
-**Worker Processing**:
-1. Finds session by `claudeSessionId`
-2. Marks session as 'completed' in database
-3. Broadcasts session completion event to SSE clients
-
-**Output**:
-```json
-{ "continue": true, "suppressOutput": true }
-```
-
-**Implementation**: `src/hooks/cleanup-hook.ts`
+> **Note:** There is no `SessionEnd` hook registered in hooks.json. Session cleanup is handled internally by the worker service.
 
 ---
 
@@ -892,7 +818,7 @@ For developers implementing this pattern on other platforms:
 
 ### Hook Registration
 - [ ] Define hook entry points in platform config
-- [ ] 5 hook types: SessionStart (2 hooks), UserPromptSubmit, PostToolUse, Stop, SessionEnd
+- [ ] 5 hook types: Setup, SessionStart (4 hooks), UserPromptSubmit (2 hooks), PostToolUse (2 hooks), Stop (2 hooks)
 - [ ] Pass `session_id`, `cwd`, and context-specific data
 
 ### Database Schema
@@ -906,11 +832,10 @@ For developers implementing this pattern on other platforms:
 - [ ] 3 core services: SessionManager, SDKAgent, DatabaseManager
 
 ### Hook Implementation
-- [ ] context-hook: `GET /api/context/inject` (with health check)
-- [ ] new-hook: createSDKSession, saveUserPrompt, `POST /sessions/{id}/init`
-- [ ] save-hook: Skip low-value tools, `POST /api/sessions/observations`
-- [ ] summary-hook: Parse transcript, `POST /api/sessions/summarize`
-- [ ] cleanup-hook: `POST /api/sessions/complete`
+- [ ] worker-service hook context: `GET /api/context/inject` (with health check)
+- [ ] worker-service hook session-init: createSession, saveUserPrompt, `POST /sessions/{id}/init`
+- [ ] worker-service hook observation: Skip low-value tools, `POST /api/sessions/observations`
+- [ ] worker-service hook summarize: Parse transcript, `POST /api/sessions/summarize`
 
 ### Privacy & Tags
 - [ ] Implement `stripMemoryTagsFromPrompt()` and `stripMemoryTagsFromJson()`

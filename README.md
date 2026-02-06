@@ -101,33 +101,35 @@ Context from previous sessions will automatically appear in new sessions.
 │                    Claude Code Plugin                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Hooks (5 Lifecycle Events)                                 │
-│  SessionStart → UserPromptSubmit → PostToolUse → Summary    │
+│  Setup → SessionStart → UserPromptSubmit → PostToolUse → Stop│
 ├─────────────────────────────────────────────────────────────┤
 │  Worker Service (Express on :37777)                         │
 ├─────────────────────────────────────────────────────────────┤
-│  MemuStore (Session, Observation, Summary management)       │
-├─────────────────────────────────────────────────────────────┤
-│  MemuClient (HTTP client for memU API)                      │
-├─────────────────────────────────────────────────────────────┤
-│                    memU API                                 │
-│           (api.memu.so or self-hosted)                      │
+│  UnifiedStore (auto-selects based on API key)               │
+├────────────────────────┬────────────────────────────────────┤
+│  LocalStore            │  MemuStore                         │
+│  (File-based JSON)     │  (memU API client)                 │
+├────────────────────────┴────────────────────────────────────┤
+│  ~/.claude-memu/data/  │  memU API (api.memu.so/self-hosted)│
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Core Components
 
-1. **Lifecycle Hooks** - Capture tool usage at key moments
+1. **Lifecycle Hooks** - Capture tool usage at 5 lifecycle events via bun-runner
 2. **Worker Service** - HTTP API on port 37777
-3. **MemuStore** - Primary storage service for all memory operations
-4. **MemuClient** - HTTP client for memU API
-5. **memU** - Hierarchical memory storage with RAG retrieval
+3. **UnifiedStore** - Auto-selects between LocalStore and MemuStore
+4. **LocalStore** - File-based JSON storage (no API key required)
+5. **MemuStore** - memU API storage with semantic search
+6. **MemuClient** - HTTP client for memU API
 
 ### Data Flow
 
-1. **SessionStart** - Retrieve relevant context from memU
-2. **UserPromptSubmit** - Create session record
-3. **PostToolUse** - Store observations as memU items
-4. **Stop** - Generate and store session summary
+1. **Setup** - Install dependencies (runs `setup.sh`)
+2. **SessionStart** - Start worker, retrieve relevant context, capture user message
+3. **UserPromptSubmit** - Start worker, create/init session
+4. **PostToolUse** - Start worker, store observations
+5. **Stop** - Start worker, generate and store session summary
 
 ---
 
@@ -142,8 +144,12 @@ Settings in `~/.claude-memu/settings.json`:
   "CLAUDE_MEMU_API_URL": "https://api.memu.so",
   "CLAUDE_MEMU_NAMESPACE": "default",
   "CLAUDE_MEMU_WORKER_PORT": "37777",
+  "CLAUDE_MEMU_WORKER_HOST": "127.0.0.1",
+  "CLAUDE_MEMU_DATA_DIR": "~/.claude-memu",
+  "CLAUDE_MEMU_LOG_LEVEL": "INFO",
   "CLAUDE_MEMU_CONTEXT_LIMIT": "20",
-  "CLAUDE_MEMU_PROACTIVE_CONTEXT": "true"
+  "CLAUDE_MEMU_PROACTIVE_CONTEXT": "true",
+  "CLAUDE_MEMU_SHOW_SUMMARIES": "true"
 }
 ```
 
@@ -159,24 +165,34 @@ Settings in `~/.claude-memu/settings.json`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CLAUDE_MEMU_MODE` | Storage mode | `auto` |
+| `CLAUDE_MEMU_MODE` | Storage mode (`auto`, `api`, `local`) | `auto` |
 | `CLAUDE_MEMU_API_KEY` | memU API key (optional for local mode) | - |
 | `CLAUDE_MEMU_API_URL` | memU API URL | `https://api.memu.so` |
 | `CLAUDE_MEMU_NAMESPACE` | Namespace for isolation | `default` |
 | `CLAUDE_MEMU_WORKER_PORT` | Worker service port | `37777` |
+| `CLAUDE_MEMU_WORKER_HOST` | Worker service host | `127.0.0.1` |
+| `CLAUDE_MEMU_DATA_DIR` | Data directory location | `~/.claude-memu` |
+| `CLAUDE_MEMU_LOG_LEVEL` | Log verbosity (DEBUG, INFO, WARN, ERROR) | `INFO` |
 | `CLAUDE_MEMU_CONTEXT_LIMIT` | Max items in context | `20` |
+| `CLAUDE_MEMU_CONTEXT_TYPES` | Observation types to include | all types |
+| `CLAUDE_MEMU_CONTEXT_CONCEPTS` | Concepts to include | all concepts |
 | `CLAUDE_MEMU_PROACTIVE_CONTEXT` | Enable proactive context (API mode) | `true` |
+| `CLAUDE_MEMU_SHOW_SUMMARIES` | Show summaries in context | `true` |
 
 ---
 
 ## API
 
-### MemuStore
+### UnifiedStore (Recommended)
 
 ```typescript
-import { initializeMemuStore } from './services/memu';
+import { initializeStore } from './services/memu';
 
-const store = await initializeMemuStore();
+// Auto-selects local or API mode based on API key
+const store = await initializeStore();
+
+console.log(store.getMode()); // 'local' or 'api'
+console.log(store.isLocalMode()); // true/false
 
 // Sessions
 const session = await store.createSession(contentSessionId, project, prompt);

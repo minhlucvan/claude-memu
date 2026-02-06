@@ -55,13 +55,13 @@ Create the settings file manually:
 
 ```bash
 # Create settings directory
-mkdir -p ~/.claude-mem
+mkdir -p ~/.claude-memu
 
 # Create settings file with OpenRouter configuration
-cat > ~/.claude-mem/settings.json << 'EOF'
+cat > ~/.claude-memu/settings.json << 'EOF'
 {
-  "CLAUDE_MEM_PROVIDER": "openrouter",
-  "CLAUDE_MEM_OPENROUTER_API_KEY": "YOUR_OPENROUTER_API_KEY"
+  "CLAUDE_MEMU_PROVIDER": "openrouter",
+  "CLAUDE_MEMU_OPENROUTER_API_KEY": "YOUR_OPENROUTER_API_KEY"
 }
 EOF
 ```
@@ -112,9 +112,9 @@ To specify a model, add to your settings:
 
 ```json
 {
-  "CLAUDE_MEM_PROVIDER": "openrouter",
-  "CLAUDE_MEM_OPENROUTER_API_KEY": "your-key",
-  "CLAUDE_MEM_OPENROUTER_MODEL": "google/gemini-2.0-flash-exp:free"
+  "CLAUDE_MEMU_PROVIDER": "openrouter",
+  "CLAUDE_MEMU_OPENROUTER_API_KEY": "your-key",
+  "CLAUDE_MEMU_OPENROUTER_MODEL": "google/gemini-2.0-flash-exp:free"
 }
 ```
 
@@ -137,14 +137,14 @@ OpenRouter charges per token. To manage costs:
 Ensure your settings file exists with the correct format:
 
 ```bash
-cat ~/.claude-mem/settings.json
+cat ~/.claude-memu/settings.json
 ```
 
 Should output something like:
 ```json
 {
-  "CLAUDE_MEM_PROVIDER": "openrouter",
-  "CLAUDE_MEM_OPENROUTER_API_KEY": "sk-or-..."
+  "CLAUDE_MEMU_PROVIDER": "openrouter",
+  "CLAUDE_MEMU_OPENROUTER_API_KEY": "sk-or-..."
 }
 ```
 
@@ -180,7 +180,7 @@ You can switch between OpenRouter, Gemini, and Claude SDK at any time by updatin
 
 ```json
 {
-  "CLAUDE_MEM_PROVIDER": "gemini"
+  "CLAUDE_MEMU_PROVIDER": "gemini"
 }
 ```
 

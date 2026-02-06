@@ -7,13 +7,13 @@ description: "System components and data flow in Claude-Mem"
 
 ## System Components
 
-Claude-Mem operates as a Claude Code plugin with five core components:
+Claude-Memu operates as a Claude Code plugin with these core components:
 
-1. **Plugin Hooks** - Capture lifecycle events (6 hook files)
-2. **Smart Install** - Cached dependency checker (pre-hook script, runs before context-hook)
-3. **Worker Service** - Process observations via Claude Agent SDK + HTTP API (10 search endpoints)
-4. **Database Layer** - Store sessions and observations (SQLite + FTS5 + ChromaDB)
-5. **mem-search Skill** - Skill-based search with progressive disclosure (v5.4.0+)
+1. **Plugin Hooks** - Capture lifecycle events via bun-runner + worker-service subcommands
+2. **Smart Install** - Cached dependency checker (runs as first SessionStart hook)
+3. **Worker Service** - HTTP API on port 37777, processes observations
+4. **UnifiedStore** - Auto-selects between LocalStore (file-based JSON) and MemuStore (memU API)
+5. **MCP Tools** - Search tools for querying project history
 6. **Viewer UI** - Web-based real-time memory stream visualization
 
 ## Technology Stack
@@ -36,14 +36,13 @@ Claude-Mem operates as a Claude Code plugin with five core components:
 
 ### Memory Pipeline
 ```
-Hook (stdin) → Database → Worker Service → SDK Processor → Database → Next Session Hook
+Hook (stdin) → Worker Service → UnifiedStore → Next Session Hook
 ```
 
 1. **Input**: Claude Code sends tool execution data via stdin to hooks
-2. **Storage**: Hooks write observations to SQLite database
-3. **Processing**: Worker service reads observations, processes via SDK
-4. **Output**: Processed summaries written back to database
-5. **Retrieval**: Next session's context hook reads summaries from database
+2. **Processing**: Hooks invoke worker-service.cjs subcommands via bun-runner.js
+3. **Storage**: Worker service stores observations via UnifiedStore (LocalStore or MemuStore)
+4. **Retrieval**: Next session's context hook retrieves context from UnifiedStore
 
 ### Search Pipeline
 ```
@@ -95,139 +94,89 @@ Uses 3-layer progressive disclosure: search → timeline → get_observations
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 6. Session Ends → Cleanup Hook Fires                            │
-│    Marks session complete (graceful, not DELETE), ready for     │
-│    next session context. Skips on /clear to preserve ongoing    │
+│ 6. Session Ends → Worker handles cleanup internally             │
+│    No SessionEnd hook registered. Worker marks sessions         │
+│    complete when Stop hook fires.                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Directory Structure
 
 ```
-claude-mem/
+claude-memu/
 ├── src/
-│   ├── hooks/                  # Hook implementations (6 hooks)
-│   │   ├── context-hook.ts     # SessionStart
-│   │   ├── user-message-hook.ts # UserMessage (for debugging)
-│   │   ├── new-hook.ts         # UserPromptSubmit
-│   │   ├── save-hook.ts        # PostToolUse
-│   │   ├── summary-hook.ts     # Stop
-│   │   ├── cleanup-hook.ts     # SessionEnd
-│   │   └── hook-response.ts    # Hook response utilities
-│   │
-│   ├── sdk/                    # Claude Agent SDK integration
-│   │   ├── prompts.ts          # XML prompt builders
-│   │   ├── parser.ts           # XML response parser
-│   │   └── worker.ts           # Main SDK agent loop
+│   ├── cli/                    # CLI handlers
+│   │   ├── adapters/           # Platform adapters (claude-code, cursor, raw)
+│   │   └── handlers/           # Event type handlers
 │   │
 │   ├── services/
-│   │   ├── worker-service.ts   # Express HTTP + SSE service
-│   │   └── sqlite/             # Database layer
-│   │       ├── SessionStore.ts # CRUD operations
-│   │       ├── SessionSearch.ts # FTS5 search service
-│   │       ├── migrations.ts
-│   │       └── types.ts
-│   │
-│   ├── ui/                     # Viewer UI
-│   │   └── viewer/             # React + TypeScript web interface
-│   │       ├── components/     # UI components
-│   │       ├── hooks/          # React hooks
-│   │       ├── utils/          # Utilities
-│   │       └── assets/         # Fonts, logos
+│   │   ├── memu/               # Storage layer
+│   │   │   ├── UnifiedStore.ts # Auto-selecting storage wrapper
+│   │   │   ├── LocalStore.ts   # File-based JSON storage
+│   │   │   ├── MemuStore.ts    # memU API storage
+│   │   │   ├── memu-client.ts  # memU HTTP client
+│   │   │   ├── types.ts        # Type definitions
+│   │   │   └── index.ts        # Module exports
+│   │   ├── worker/             # Worker service
+│   │   ├── domain/             # Domain logic
+│   │   └── infrastructure/     # Infrastructure services
 │   │
 │   ├── shared/                 # Shared utilities
-│   │   ├── config.ts
-│   │   ├── paths.ts
-│   │   └── storage.ts
+│   │   └── SettingsDefaultsManager.ts  # Configuration defaults
 │   │
 │   └── utils/
-│       ├── logger.ts
-│       ├── platform.ts
-│       └── port-allocator.ts
+│       └── logger.ts
 │
 ├── scripts/                    # Build and utility scripts
-│   └── smart-install.js        # Cached dependency checker (pre-hook)
 │
 ├── plugin/                     # Plugin distribution
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── hooks/
-│   │   └── hooks.json
+│   │   └── hooks.json          # 5 hook events (Setup, SessionStart, etc.)
 │   ├── scripts/                # Built executables
-│   │   ├── context-hook.js
-│   │   ├── user-message-hook.js
-│   │   ├── new-hook.js
-│   │   ├── save-hook.js
-│   │   ├── summary-hook.js
-│   │   ├── cleanup-hook.js
-│   │   └── worker-service.cjs  # Background worker + HTTP API
-│   │
-│   ├── skills/                 # Agent skills (v5.4.0+)
-│   │   ├── mem-search/         # Search skill with progressive disclosure (v5.5.0)
-│   │   │   ├── SKILL.md        # Skill frontmatter (~250 tokens)
-│   │   │   ├── operations/     # 12 detailed operation docs
-│   │   │   └── principles/     # 2 principle guides
-│   │   ├── troubleshoot/       # Troubleshooting skill
-│   │   │   ├── SKILL.md
-│   │   │   └── operations/     # 6 operation docs
-│   │   └── version-bump/       # Version management skill (deprecated)
+│   │   ├── setup.sh            # Setup hook
+│   │   ├── smart-install.js    # Cached dependency checker
+│   │   ├── bun-runner.js       # Bun runtime wrapper
+│   │   ├── worker-service.cjs  # Worker service (handles all hook events)
+│   │   └── mcp-server.cjs      # MCP search server
 │   │
 │   └── ui/                     # Built viewer UI
 │       └── viewer.html         # Self-contained bundle
 │
 ├── tests/                      # Test suite
-├── docs/                       # Documentation
-└── ecosystem.config.cjs        # Process configuration (deprecated)
+└── docs/                       # Documentation
 ```
 
 ## Component Details
 
-### 1. Plugin Hooks (6 Hooks)
-- **context-hook.js** - SessionStart: Starts Bun worker, injects context
-- **user-message-hook.js** - UserMessage: Debugging hook
-- **new-hook.js** - UserPromptSubmit: Creates session, saves prompt
-- **save-hook.js** - PostToolUse: Captures tool executions
-- **summary-hook.js** - Stop: Generates session summary
-- **cleanup-hook.js** - SessionEnd: Marks session complete
-
-**Note**: smart-install.js is a pre-hook dependency checker (not a lifecycle hook). It's called before context-hook via command chaining in hooks.json and only runs when dependencies need updating.
+### 1. Plugin Hooks
+All hooks use `bun-runner.js` → `worker-service.cjs` subcommand pattern:
+- **Setup** - Runs `setup.sh` for initial setup
+- **SessionStart** - smart-install + worker start + context injection + user-message
+- **UserPromptSubmit** - worker start + session-init
+- **PostToolUse** - worker start + observation capture
+- **Stop** - worker start + session summarize
 
 See [Plugin Hooks](/architecture/hooks) for detailed hook documentation.
 
 ### 2. Worker Service
 Express.js HTTP server on port 37777 (configurable) with:
-- 10 search HTTP API endpoints (v5.4.0+)
-- 8 viewer UI HTTP/SSE endpoints
-- Async observation processing via Claude Agent SDK
+- Data retrieval HTTP API endpoints
+- Viewer UI HTTP/SSE endpoints
+- Async observation processing
 - Real-time updates via Server-Sent Events
 - Auto-managed by Bun
 
 See [Worker Service](/architecture/worker-service) for HTTP API and endpoints.
 
-### 3. Database Layer
-SQLite3 with bun:sqlite driver featuring:
-- FTS5 virtual tables for full-text search
-- SessionStore for CRUD operations
-- SessionSearch for FTS5 queries
-- Location: `~/.claude-mem/claude-mem.db`
+### 3. Storage Layer
+**UnifiedStore** auto-selects between:
+- **LocalStore** - File-based JSON storage in `~/.claude-memu/data/` (no API key required)
+- **MemuStore** - memU API with semantic search and proactive context
 
-See [Database Architecture](/architecture/database) for schema and FTS5 search.
-
-### 4. mem-search Skill (v5.4.0+)
-Skill-based search with progressive disclosure providing 10 search operations:
-- Search observations, sessions, prompts (full-text FTS5)
-- Filter by type, concept, file
-- Get recent context, timeline, timeline by query
-- API help documentation
-
-**Token Savings**: ~2,250 tokens per session vs MCP approach
-- Skill frontmatter: ~250 tokens (loaded at session start)
-- Full instructions: ~2,500 tokens (loaded on-demand when invoked)
-- HTTP API endpoints instead of MCP tools
-
-**Skill Enhancement (v5.5.0)**: Renamed from "search" to "mem-search" for better scope differentiation. Effectiveness increased from 67% to 100% with enhanced triggers and comprehensive documentation.
-
-See [Search Architecture](/architecture/search-architecture) for technical details and examples.
+### 4. MCP Tools
+MCP-based search tools for querying project history, automatically available in Claude Code sessions.
 
 ### 5. Viewer UI
 React + TypeScript web interface at http://localhost:37777 featuring:
