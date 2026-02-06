@@ -38,7 +38,7 @@ Run fully locally with file-based storage:
 
 ```bash
 # In Claude Code
-/plugin marketplace add thedotmack/claude-memu
+/plugin marketplace add minhlucvan/claude-memu
 /plugin install claude-memu
 ```
 
@@ -56,7 +56,7 @@ Sign up at [api.memu.so](https://api.memu.so) or deploy a self-hosted instance.
 
 ```bash
 # In Claude Code
-/plugin marketplace add thedotmack/claude-memu
+/plugin marketplace add minhlucvan/claude-memu
 /plugin install claude-memu
 ```
 

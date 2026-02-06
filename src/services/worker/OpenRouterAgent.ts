@@ -348,8 +348,8 @@ export class OpenRouterAgent {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': siteUrl || 'https://github.com/thedotmack/claude-mem',
-        'X-Title': appName || 'claude-mem',
+        'HTTP-Referer': siteUrl || 'https://github.com/minhlucvan/claude-memu',
+        'X-Title': appName || 'claude-memu',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -425,7 +425,7 @@ export class OpenRouterAgent {
 
     // Optional analytics headers
     const siteUrl = settings.CLAUDE_MEM_OPENROUTER_SITE_URL || '';
-    const appName = settings.CLAUDE_MEM_OPENROUTER_APP_NAME || 'claude-mem';
+    const appName = settings.CLAUDE_MEM_OPENROUTER_APP_NAME || 'claude-memu';
 
     return { apiKey, model, siteUrl, appName };
   }
